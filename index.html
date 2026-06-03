@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Happy Birthday, Mahal 💕</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --rose:#d4607a;
+  --blush:#fce8ee;
+  --cream:#fdf8f3;
+  --petal:#f5cdd8;
+  --mauve:#7c3a55;
+  --text:#3a1f2b;
+  --muted:#8c6070;
+  --gold:#c9a96e;
+  --pink-bg:#f9b8cb;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--cream);
+  color:var(--text);
+  overflow-x:hidden;
+  cursor:none;
+}
+
+/* ── cursor ── */
+#cursor{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--rose);
+  position:fixed;pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:width .2s,height .2s,background .2s;
+  mix-blend-mode:multiply;
+}
+
+/* ── flowers canvas (always on top of lock, behind main) ── */
+#flowerCanvas{
+  position:fixed;inset:0;pointer-events:none;z-index:2;
+}
+
+/* ════════════════════════════════
+   LOCK SCREEN
+════════════════════════════════ */
+#lockScreen{
+  position:fixed;inset:0;z-index:10;
+  background:var(--pink-bg);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:2rem;
+  transition:opacity .8s ease, transform .8s ease;
+}
+#lockScreen.unlocked{
+  opacity:0;transform:scale(1.05);pointer-events:none;
+}
+
+.lock-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2rem,7vw,4rem);
+  color:var(--mauve);
+  text-align:center;
+  line-height:1.1;
+}
+.lock-title em{color:var(--rose);font-style:italic;}
+
+.lock-layout{
+  display:flex;
+  flex-wrap:wrap;
+  gap:3rem;
+  align-items:center;
+  justify-content:center;
+}
+
+/* cake illustration SVG area */
+.cake-wrap{
+  width:220px;height:220px;
+  background:#fff8f5;
+  border-radius:20px;
+  border:2px solid var(--petal);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 40px rgba(212,96,122,.15);
+  font-size:7rem;
+  animation:cakeBob 2.5s ease-in-out infinite;
+}
+@keyframes cakeBob{
+  0%,100%{transform:translateY(0);}
+  50%{transform:translateY(-8px);}
+}
+
+/* PIN pad */
+.pin-box{
+  background:#fff;
+  border-radius:24px;
+  padding:2.2rem 2.5rem;
+  box-shadow:0 16px 48px rgba(212,96,122,.14);
+  border:1px solid var(--petal);
+  text-align:center;
+  width:300px;
+}
+.pin-label{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.5rem;color:var(--mauve);
+  margin-bottom:.3rem;
+}
+.pin-hint{
+  font-size:.8rem;color:var(--muted);font-weight:300;
+  margin-bottom:1.3rem;
+}
+.pin-display{
+  display:flex;gap:12px;justify-content:center;
+  margin-bottom:1.5rem;
+}
+.pin-dot{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid var(--rose);
+  background:transparent;
+  transition:background .2s;
+}
+.pin-dot.filled{background:var(--rose);}
+.pin-dot.error{border-color:#e53;background:#e53;animation:shake .3s ease;}
+
+.numpad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+.numpad button{
+  font-family:'DM Sans',sans-serif;
+  font-size:1.1rem;font-weight:500;
+  padding:.85rem 0;
+  border-radius:12px;
+  border:1px solid var(--petal);
+  background:var(--blush);
+  color:var(--mauve);
+  cursor:none;
+  transition:transform .15s,background .15s,box-shadow .15s;
+}
+.numpad button:hover{
+  background:var(--rose);color:#fff;
+  box-shadow:0 6px 18px rgba(212,96,122,.3);
+  transform:scale(1.07);
+}
+.numpad button:active{transform:scale(.95);}
+.numpad button.wide{grid-column:span 1;}
+
+.pin-error-msg{
+  font-size:.8rem;color:#c0392b;
+  margin-top:.8rem;height:1rem;
+  transition:opacity .3s;
+}
+
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  25%{transform:translateX(-6px);}
+  75%{transform:translateX(6px);}
+}
+
+/* ════════════════════════════════
+   MAIN SITE
+════════════════════════════════ */
+#mainSite{
+  display:none;
+  opacity:0;
+  transition:opacity .9s ease;
+}
+#mainSite.shown{display:block;}
+#mainSite.visible{opacity:1;}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;justify-content:center;gap:1.8rem;flex-wrap:wrap;
+  padding:1rem 2rem;
+  background:rgba(253,248,243,.88);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--petal);
+}
+nav a{
+  font-size:.72rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;
+  transition:color .2s;font-weight:500;
+}
+nav a:hover{color:var(--rose);}
+
+section{position:relative;z-index:1;}
+
+/* HERO */
+#hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  padding:7rem 2rem 4rem;
+  background:
+    radial-gradient(ellipse 70% 50% at 80% 20%,#fce8ee,transparent 60%),
+    radial-gradient(ellipse 60% 60% at 20% 80%,#f5e6f0,transparent 60%),
+    var(--cream);
+}
+.hero-eyebrow{
+  font-size:.72rem;letter-spacing:6px;text-transform:uppercase;
+  color:var(--rose);margin-bottom:1.8rem;
+  opacity:0;animation:fadeUp .9s .3s forwards;
+}
+.hero-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(3.5rem,12vw,8.5rem);
+  line-height:.95;color:var(--mauve);
+  margin-bottom:.8rem;
+  opacity:0;animation:fadeUp 1s .5s forwards;
+}
+.hero-title em{color:var(--rose);font-style:italic;}
+.hero-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.5rem,8vw,5.5rem);
+  font-style:italic;font-weight:300;
+  color:var(--gold);
+  opacity:0;animation:fadeUp 1s .7s forwards;
+  margin-bottom:2rem;
+}
+.hero-sub{
+  font-size:1rem;color:var(--muted);font-weight:300;
+  max-width:400px;line-height:1.8;
+  opacity:0;animation:fadeUp .9s .9s forwards;
+  margin-bottom:2.5rem;
+}
+.hero-hearts{
+  display:flex;gap:8px;
+  opacity:0;animation:fadeUp .8s 1.1s forwards;
+}
+.heart-beat{
+  font-size:1.6rem;
+  animation:heartbeat 1.6s ease-in-out infinite;
+}
+.heart-beat:nth-child(2){animation-delay:.2s;}
+.heart-beat:nth-child(3){animation-delay:.4s;}
+@keyframes heartbeat{
+  0%,100%{transform:scale(1);}
+  15%{transform:scale(1.3);}
+  30%{transform:scale(1);}
+  45%{transform:scale(1.15);}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(30px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.scroll-line{
+  width:1px;height:60px;background:var(--rose);
+  margin:2rem auto 0;
+  animation:growLine 1.2s 1.4s both,pulseLine 2s 2.6s infinite;
+  opacity:0;
+}
+@keyframes growLine{from{height:0;opacity:0;}to{height:60px;opacity:.6;}}
+@keyframes pulseLine{0%,100%{opacity:.4;}50%{opacity:.9;}}
+
+/* COUNTDOWN */
+#countdown-section{padding:5rem 2rem;text-align:center;}
+.count-box{
+  display:inline-flex;gap:1.2rem;flex-wrap:wrap;
+  justify-content:center;margin-top:2.5rem;
+}
+.count-unit{
+  background:#fff;
+  border:1px solid var(--petal);
+  border-radius:16px;
+  padding:1.4rem 1.6rem;
+  min-width:88px;
+  box-shadow:0 8px 24px rgba(212,96,122,.07);
+}
+.count-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:3rem;font-weight:600;
+  color:var(--rose);line-height:1;display:block;
+}
+.count-lbl{
+  font-size:.7rem;letter-spacing:3px;text-transform:uppercase;
+  color:var(--muted);margin-top:.3rem;display:block;
+}
+.bday-msg{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.2rem;font-style:italic;
+  color:var(--rose);margin-top:2rem;display:none;
+}
+
+/* shared section styles */
+.section-tag{
+  font-size:.72rem;letter-spacing:5px;text-transform:uppercase;
+  color:var(--rose);text-align:center;margin-bottom:1rem;
+}
+.section-h{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.9rem,5vw,3rem);
+  text-align:center;color:var(--mauve);
+  margin-bottom:3rem;line-height:1.2;
+}
+
+/* LETTER */
+#letter{padding:6rem 2rem;max-width:760px;margin:0 auto;}
+.letter-card{
+  background:#fff;
+  border:1px solid var(--petal);
+  border-radius:24px;
+  padding:3.5rem 4rem;
+  position:relative;
+  box-shadow:0 20px 60px rgba(212,96,122,.08);
+}
+.letter-card::before{
+  content:'\201C';
+  font-family:'Cormorant Garamond',serif;
+  font-size:10rem;line-height:1;
+  color:var(--petal);
+  position:absolute;top:0;left:2rem;
+  pointer-events:none;user-select:none;
+}
+.letter-card p{
+  font-size:1.05rem;line-height:2;
+  color:var(--muted);font-weight:300;
+  margin-bottom:1.2rem;
+}
+.letter-card p:first-of-type{color:var(--text);font-weight:400;}
+.letter-sign{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.6rem;font-style:italic;
+  color:var(--rose);text-align:right;margin-top:1rem;
+}
+
+/* REASONS */
+#reasons{
+  padding:6rem 2rem;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%,var(--blush),transparent 70%),
+    var(--cream);
+}
+.reasons-inner{max-width:900px;margin:0 auto;}
+.reasons-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:1rem;margin-top:3rem;
+}
+.card{
+  background:#fff;
+  border:1px solid var(--petal);
+  border-radius:18px;
+  padding:1.8rem 1.6rem;
+  cursor:default;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;
+  position:relative;overflow:hidden;
+}
+.card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(249,224,232,.4),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.card:hover{transform:translateY(-8px) rotate(.4deg);box-shadow:0 24px 48px rgba(212,96,122,.14);}
+.card:hover::after{opacity:1;}
+.card-num{
+  font-family:'Cormorant Garamond',serif;
+  font-size:3rem;font-style:italic;
+  color:var(--petal);line-height:1;margin-bottom:.5rem;
+}
+.card p{font-size:.94rem;line-height:1.75;color:var(--muted);font-weight:300;}
+
+/* MEMORIES */
+#memories{padding:6rem 2rem;max-width:700px;margin:0 auto;}
+.timeline{margin-top:3rem;position:relative;}
+.timeline::before{
+  content:'';
+  position:absolute;left:28px;top:0;bottom:0;
+  width:1px;background:var(--petal);
+}
+.memory{
+  display:flex;gap:1.5rem;
+  margin-bottom:2.5rem;align-items:flex-start;
+  opacity:0;transform:translateX(-20px);
+  transition:opacity .6s ease,transform .6s ease;
+}
+.memory.visible{opacity:1;transform:translateX(0);}
+.memory-dot{
+  width:56px;height:56px;border-radius:50%;
+  background:var(--blush);border:2px solid var(--petal);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;flex-shrink:0;
+  transition:background .3s,border-color .3s;
+}
+.memory:hover .memory-dot{background:var(--rose);border-color:var(--rose);}
+.memory-body h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.3rem;color:var(--mauve);margin-bottom:.4rem;
+}
+.memory-body p{font-size:.93rem;line-height:1.75;color:var(--muted);font-weight:300;}
+
+/* GALLERY */
+#gallery{
+  padding:6rem 2rem;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 100%,var(--blush),transparent 60%),
+    var(--cream);
+}
+.gallery-inner{max-width:900px;margin:0 auto;}
+.mosaic{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1rem;margin-top:3rem;
+}
+.mosaic-item{
+  border-radius:16px;overflow:hidden;
+  position:relative;aspect-ratio:1;
+  background:var(--blush);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:transform .3s;
+  border:1px solid var(--petal);
+}
+.mosaic-item:nth-child(1){grid-column:span 2;aspect-ratio:2/1;}
+.mosaic-item:nth-child(4){grid-column:span 2;aspect-ratio:2/1;}
+.mosaic-item:hover{transform:scale(.98);}
+.mosaic-placeholder{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:.5rem;padding:1rem;text-align:center;
+  pointer-events:none;
+}
+.mosaic-placeholder span{font-size:2rem;}
+.mosaic-placeholder p{font-size:.8rem;color:var(--muted);font-weight:300;line-height:1.5;}
+.mosaic-item input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2;
+}
+.mosaic-item img{
+  position:absolute;inset:0;
+  width:100%;height:100%;object-fit:cover;display:none;
+}
+.mosaic-item.has-photo img{display:block;}
+.mosaic-item.has-photo .mosaic-placeholder{display:none;}
+
+/* CLOSING */
+#closing{
+  padding:8rem 2rem 7rem;
+  text-align:center;
+  background:
+    radial-gradient(ellipse 100% 60% at 50% 100%,#fce8ee,transparent 60%),
+    var(--cream);
+}
+.closing-h{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(2.5rem,8vw,5.5rem);
+  color:var(--mauve);margin-bottom:1.5rem;line-height:1.1;
+}
+.closing-h em{color:var(--rose);font-style:italic;}
+.closing-p{
+  font-size:1rem;color:var(--muted);font-weight:300;
+  max-width:440px;margin:0 auto 3rem;line-height:1.9;
+}
+.confetti-btn{
+  background:var(--rose);color:#fff;border:none;
+  font-family:'DM Sans',sans-serif;
+  font-size:.9rem;font-weight:500;letter-spacing:1px;
+  padding:.85rem 2.5rem;border-radius:100px;
+  cursor:none;
+  transition:transform .2s,box-shadow .2s;
+  box-shadow:0 8px 24px rgba(212,96,122,.3);
+}
+.confetti-btn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 16px 36px rgba(212,96,122,.4);
+}
+.big-heart{
+  font-size:5rem;display:inline-block;
+  animation:heartbeat 1.4s ease-in-out infinite;
+}
+
+.hr{max-width:200px;margin:0 auto;border:none;border-top:1px solid var(--petal);}
+
+/* music btn */
+#musicBtn{
+  position:fixed;bottom:2rem;right:2rem;z-index:200;
+  width:50px;height:50px;border-radius:50%;
+  background:var(--rose);color:#fff;
+  border:none;font-size:1.3rem;
+  display:none;
+  align-items:center;justify-content:center;
+  cursor:none;
+  box-shadow:0 6px 20px rgba(212,96,122,.35);
+  transition:transform .2s;
+}
+#musicBtn.show{display:flex;}
+#musicBtn:hover{transform:scale(1.1);}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:500;display:none;}
+
+@media(max-width:600px){
+  .letter-card{padding:2rem 1.5rem;}
+  .mosaic{grid-template-columns:repeat(2,1fr);}
+  .mosaic-item:nth-child(1),
+  .mosaic-item:nth-child(4){grid-column:span 2;}
+  .lock-layout{flex-direction:column;gap:1.5rem;}
+  .cake-wrap{width:160px;height:160px;font-size:5rem;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="flowerCanvas"></canvas>
+<div id="cursor"></div>
+<canvas id="confettiCanvas"></canvas>
+<button id="musicBtn" aria-label="Toggle music">🎵</button>
+
+<!-- ════ LOCK SCREEN ════ -->
+<div id="lockScreen">
+  <h1 class="lock-title">Happy Birthday,<br><em>Jerome</em> 🎂</h1>
+  <div class="lock-layout">
+    <!-- cake -->
+    <div class="cake-wrap">🎂</div>
+    <!-- pin pad -->
+    <div class="pin-box">
+      <p class="pin-label">Enter Passcode</p>
+      <p class="pin-hint" id="pinHint">Hint: Your special day 🎂 Month and Day</p>
+      <div class="pin-display">
+        <div class="pin-dot" id="d0"></div>
+        <div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div>
+        <div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="numpad">
+        <button onclick="pressKey('1')">1</button>
+        <button onclick="pressKey('2')">2</button>
+        <button onclick="pressKey('3')">3</button>
+        <button onclick="pressKey('4')">4</button>
+        <button onclick="pressKey('5')">5</button>
+        <button onclick="pressKey('6')">6</button>
+        <button onclick="pressKey('7')">7</button>
+        <button onclick="pressKey('8')">8</button>
+        <button onclick="pressKey('9')">9</button>
+        <button onclick="clearPin()">Clear</button>
+        <button onclick="pressKey('0')">0</button>
+        <button onclick="enterPin()">Enter</button>
+      </div>
+      <p class="pin-error-msg" id="pinError"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MAIN SITE ════ -->
+<div id="mainSite">
+
+  <nav>
+    <a href="#hero">Home</a>
+    <a href="#letter">Letter</a>
+    <a href="#reasons">Reasons</a>
+    <a href="#memories">Memories</a>
+    <a href="#gallery">Photos</a>
+    <a href="#closing">Wish</a>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <p class="hero-eyebrow">Today is all about you</p>
+    <h1 class="hero-title">Happy<br><em>Birthday</em></h1>
+    <p class="hero-name">Mahal ko! 🌸</p>
+    <p class="hero-sub">Happy Birthday, mahal. lagi mo tandaan na mahal na mahal kita, lagi man tayo mag-away.</p>
+    <div class="hero-hearts">
+      <span class="heart-beat">💗</span>
+      <span class="heart-beat">🌺</span>
+      <span class="heart-beat">💗</span>
+    </div>
+    <div class="scroll-line"></div>
+  </section>
+
+  <!-- COUNTDOWN -->
+  <section id="countdown-section">
+    <p class="section-tag reveal">Your special day</p>
+    <h2 class="section-h reveal">Time on your birthday…</h2>
+    <div class="count-box reveal" id="countdownBox">
+      <div class="count-unit"><span class="count-num" id="cd-h">00</span><span class="count-lbl">Hours</span></div>
+      <div class="count-unit"><span class="count-num" id="cd-m">00</span><span class="count-lbl">Minutes</span></div>
+      <div class="count-unit"><span class="count-num" id="cd-s">00</span><span class="count-lbl">Seconds</span></div>
+    </div>
+    <p class="bday-msg" id="birthdayMsg">🎂 It's your birthday! 🎂</p>
+  </section>
+
+  <hr class="hr"/>
+
+  <!-- LETTER -->
+  <section id="letter">
+    <p class="section-tag reveal">From my heart to yours</p>
+    <h2 class="section-h reveal">A love letter for you</h2>
+    <div class="letter-card reveal">
+      <p>Hi mahal,</p>
+      <p>Happy birthday, mahal. andito lang ako palagi para sayo mahal na mahal kita ingatan mo sarili mo, maligo ka HAHAHA. sana umuwi kana miss na miss na kita mahal</p>
+      <p>sorry mahal kung minsan nag aaway tayo sa mga walang kwenta bagay, sorry kasi praning ako sana palagi moko intindihin kahit anong mangyayare, kasi mahal na mahal kita.</p>
+      <p>Sana wag tayo mahal mapagod lalo't LDR tayo ngayon, sana patuloy natin patawarin ang isat- isa. Lagi natin piliin mag ayos, isang taon na lang masunod na din ako diyan. Kaya mag iingat at magpaka lusog ka.</p>
+      <p>Happy birthday, mahal sana masaya ka ngayong birthday mo mahal na mahal kita iloveyouuuu mwuah</p>
+      <p class="letter-sign">cath 💕</p>
+    </div>
+  </section>
+
+  <hr class="hr"/>
+
+  <!-- REASONS -->
+  <section id="reasons">
+    <div class="reasons-inner">
+      <p class="section-tag reveal">Why I love you</p>
+      <h2 class="section-h reveal">Just a few of the reasons…</h2>
+      <div class="reasons-grid">
+        <div class="card reveal"><div class="card-num">01</div><p>Mahal na mahal kita kasi kahit na anong pang aaway ko dimo ako iniiwan.</p></div>
+        <div class="card reveal"><div class="card-num">02</div><p>Mahal na mahal kita kasi lagi kang andiyan para sakin.</p></div>
+        <div class="card reveal"><div class="card-num">03</div><p>Mahal na mahal kita napaka pogiiiii ng mahal ko.</p></div>
+        <div class="card reveal"><div class="card-num">04</div><p>Mahal na mahal kita kasi alam kung mahal moko at lagi mo yun pinaparamdam.</p></div>
+        <div class="card reveal"><div class="card-num">05</div><p>Mahal na mahal kita kasi mabait HAHAHAHHAAHA weh.</p></div>
+        <div class="card reveal"><div class="card-num">06</div><p>Mahal na mahal kita kasi mahal kita wala ng iba kundi mahal na mahal talaga kita.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="hr"/>
+
+  <!-- MEMORIES -->
+  <section id="memories">
+    <p class="section-tag reveal">Our story</p>
+    <h2 class="section-h reveal">Moments I hold close to my heart</h2>
+    <div class="timeline">
+      <div class="memory"><div class="memory-dot">❤️</div><div class="memory-body"><h3>Nung una tayo magkita</h3><p>Nung una tayo magkita alam kona na magiging boyfriend kita kasi nakita ko magiging baliw na baliw ka sakin.</p></div></div>
+      <div class="memory"><div class="memory-dot">❤️</div><div class="memory-body"><h3>Mga away natin</h3><p>Kapag nag iinarte kasi ako sayo gusto ko lang naman suyuin mo lang ako HAHAHA gusto ko lang lambingin mo ako.</p></div></div>
+      <div class="memory"><div class="memory-dot">❤️</div><div class="memory-body"><h3>Lambingan natin</h3><p>Miss kona yung mga harutan natin, yung paglalambing natin sa isat isa yung magkayakap lang tayo habang nanunood, miss na miss kona</p></div></div>
+      <div class="memory"><div class="memory-dot">❤️</div><div class="memory-body"><h3>Asaran</h3><p>Miss kona yung mga asaran natin yung maya maya may mapipikon na lang HAHAHAH miss you so much mahal.</p></div></div>
+    </div>
+  </section>
+
+  <hr class="hr"/>
+
+  <!-- GALLERY -->
+  <section id="gallery">
+    <div class="gallery-inner">
+      <p class="section-tag reveal">Our memories</p>
+      <h2 class="section-h reveal">Add your favorite photos 📷</h2>
+      <p class="reveal" style="text-align:center;color:var(--muted);font-size:.9rem;font-weight:300;margin-bottom:0;">Click any frame to upload a photo!</p>
+      <div class="mosaic">
+        <div class="mosaic-item has-photo" id="photo0">
+  <img id="img0" src="photo2.jpg" alt="Our Photo"/>
+</div>
+<div class="mosaic-item has-photo" id="photo1">
+  <img id="img0" src="photo1.jpg" alt="Our Photo"/>
+</div>
+<div class="mosaic-item has-photo" id="photo2">
+  <img id="img0" src="photo3.jpg" alt="Our Photo"/>
+</div>
+<div class="mosaic-item has-photo" id="photo3">
+  <img id="img0" src="photo4.jpg" alt="Our Photo"/>
+</div>
+<div class="mosaic-item has-photo" id="photo4">
+  <img id="img0" src="photo5.jpg" alt="Our Photo"/>
+</div>
+<div class="mosaic-item has-photo" id="photo5">
+  <img id="img0" src="first.png" alt="Our Photo"/>
+</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING -->
+  <section id="closing">
+    <h2 class="closing-h reveal">Here's to you,<br><em>Mahal 🌸</em></h2>
+    <p class="closing-p reveal">Sana masaya ka mahal, ito lang muna kaya ko sunod na lang yung kotse HAHAHAHAHAH happy birthday mahal sana masaya ka ngayon, enjoy your day.</p>
+    <button class="confetti-btn reveal" onclick="launchConfetti()">🎉Happy Birthday, mahal ko! 🎉</button>
+    <br/><br/>
+    <div class="big-heart reveal">💗</div>
+  </section>
+
+</div><!-- end mainSite -->
+
+<script>
+// ── Cursor ──
+const cursor=document.getElementById('cursor');
+document.addEventListener('mousemove',e=>{
+  cursor.style.left=e.clientX+'px';
+  cursor.style.top=e.clientY+'px';
+});
+
+// ── PIN logic ──
+// Change this to Jerome's birthday MMDD e.g. "0615" for June 15
+const CORRECT_PIN = "0604"; // ← CHANGE THIS to his birthday!
+let pinInput = '';
+
+function updateDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('d'+i);
+    d.classList.toggle('filled', i < pinInput.length);
+    d.classList.remove('error');
+  }
+}
+
+function pressKey(k){
+  if(pinInput.length>=4) return;
+  pinInput+=k;
+  updateDots();
+  if(pinInput.length===4) setTimeout(enterPin,200);
+}
+
+function clearPin(){
+  pinInput='';
+  updateDots();
+  document.getElementById('pinError').textContent='';
+}
+
+function enterPin(){
+  if(pinInput===CORRECT_PIN){
+    unlock();
+  } else {
+    for(let i=0;i<4;i++) document.getElementById('d'+i).classList.add('error');
+    document.getElementById('pinError').textContent='Hmm, try again! 💕';
+    setTimeout(()=>{ pinInput=''; updateDots(); document.getElementById('pinError').textContent=''; },900);
+  }
+}
+
+function unlock(){
+  const lock=document.getElementById('lockScreen');
+  lock.classList.add('unlocked');
+  const main=document.getElementById('mainSite');
+  main.classList.add('shown');
+  setTimeout(()=>main.classList.add('visible'),100);
+  document.getElementById('musicBtn').classList.add('show');
+  setTimeout(()=>lock.style.display='none',900);
+  launchConfetti();
+  bgMusic.currentTime = 0;
+  bgMusic.play();
+}
+
+// keyboard support
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('lockScreen').style.display==='none') return;
+  if(e.key>='0'&&e.key<='9') pressKey(e.key);
+  if(e.key==='Backspace') clearPin();
+  if(e.key==='Enter') enterPin();
+});
+
+// ── Falling flowers canvas ──
+(function(){
+  const canvas=document.getElementById('flowerCanvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,flowers=[];
+  const EMOJIS=['🌸','🌺','🌷','🌹','💐','🌼'];
+
+  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; }
+  resize();
+  window.addEventListener('resize',resize);
+
+  function Flower(){
+    this.x=Math.random()*W;
+    this.y=-40;
+    this.emoji=EMOJIS[Math.floor(Math.random()*EMOJIS.length)];
+    this.size=16+Math.random()*18;
+    this.speed=.8+Math.random()*1.4;
+    this.drift=(Math.random()-.5)*1.2;
+    this.rot=Math.random()*Math.PI*2;
+    this.rotSpeed=(Math.random()-.5)*.04;
+    this.opacity=.6+Math.random()*.4;
+    this.sway=Math.random()*Math.PI*2;
+    this.swaySpeed=.02+Math.random()*.02;
+    this.swayAmp=1+Math.random()*2;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    flowers.forEach(f=>{
+      ctx.save();
+      ctx.globalAlpha=f.opacity;
+      ctx.translate(f.x,f.y);
+      ctx.rotate(f.rot);
+      ctx.font=f.size+'px serif';
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillText(f.emoji,0,0);
+      ctx.restore();
+      f.y+=f.speed;
+      f.sway+=f.swaySpeed;
+      f.x+=f.drift+Math.sin(f.sway)*f.swayAmp;
+      f.rot+=f.rotSpeed;
+      if(f.y>H+50){ f.y=-40; f.x=Math.random()*W; }
+    });
+    requestAnimationFrame(draw);
+  }
+
+  for(let i=0;i<35;i++){
+    const f=new Flower();
+    f.y=Math.random()*H;
+    flowers.push(f);
+  }
+  draw();
+  setInterval(()=>{ if(flowers.length<45) flowers.push(new Flower()); },600);
+})();
+
+// ── Scroll reveals ──
+const revEls=document.querySelectorAll('.reveal,.memory');
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); }});
+},{threshold:.15});
+revEls.forEach(el=>obs.observe(el));
+
+// ── Photo upload ──
+function loadPhoto(input,idx){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    document.getElementById('img'+idx).src=e.target.result;
+    document.getElementById('photo'+idx).classList.add('has-photo');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Countdown ──
+(function tick(){
+  const now=new Date();
+  const midnight=new Date(now); midnight.setHours(24,0,0,0);
+  const diff=midnight-now;
+  if(diff<=0){
+    document.getElementById('countdownBox').style.display='none';
+    document.getElementById('birthdayMsg').style.display='block';
+  } else {
+    const h=Math.floor(diff/3600000);
+    const m=Math.floor((diff%3600000)/60000);
+    const s=Math.floor((diff%60000)/1000);
+    document.getElementById('cd-h').textContent=String(h).padStart(2,'0');
+    document.getElementById('cd-m').textContent=String(m).padStart(2,'0');
+    document.getElementById('cd-s').textContent=String(s).padStart(2,'0');
+  }
+  setTimeout(tick,1000);
+})();
+
+// ── Confetti ──
+function launchConfetti(){
+  const canvas=document.getElementById('confettiCanvas');
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  canvas.style.display='block';
+  const ctx=canvas.getContext('2d');
+  const COLS=['#d4607a','#f9a8c0','#c9a96e','#f7c5d5','#7c3a55','#fce8ee','#f5cdd8','#ff85a1'];
+  const pieces=Array.from({length:200},()=>({
+    x:Math.random()*canvas.width,
+    y:-10-Math.random()*150,
+    r:4+Math.random()*7,
+    color:COLS[Math.floor(Math.random()*COLS.length)],
+    speed:3+Math.random()*5,
+    drift:(Math.random()-.5)*3,
+    rot:Math.random()*Math.PI*2,
+    rotS:(Math.random()-.5)*.15,
+    shape:Math.random()>.5?'circle':'rect'
+  }));
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      ctx.save();
+      ctx.globalAlpha=Math.max(0,1-frame/200);
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle=p.color;
+      if(p.shape==='circle'){ctx.beginPath();ctx.arc(0,0,p.r,0,Math.PI*2);ctx.fill();}
+      else{ctx.fillRect(-p.r,-p.r*.5,p.r*2,p.r);}
+      ctx.restore();
+      p.y+=p.speed; p.x+=p.drift; p.rot+=p.rotS;
+    });
+    frame++;
+    if(frame<200) requestAnimationFrame(draw);
+    else canvas.style.display='none';
+  }
+  frame=0; draw();
+}
+
+// ── Background music ──
+document.getElementById('musicBtn').addEventListener('click', function(){
+  if(bgMusic.paused){
+    bgMusic.play();
+    this.textContent = '🔇'; // currently playing
+  } else {
+    bgMusic.pause();
+    this.textContent = '🎵'; // paused
+  }
+});
+</script>
+
+<audio id="bgMusic" loop preload="auto">
+  <source src="mahal.mp3" type="audio/mpeg">
+</audio>
+</body>
+</html>
